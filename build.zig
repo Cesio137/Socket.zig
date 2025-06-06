@@ -126,7 +126,7 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     var uv = b.addStaticLibrary(.{ 
         .name = "uv", 
         .target = target, 
-        .optimize = optimize 
+        .optimize = optimize,
     });
     uv.addIncludePath(b.path("vendor/libuv/include"));
     uv.addIncludePath(b.path("vendor/libuv/src"));
@@ -197,10 +197,43 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     if (target.result.os.tag == .linux) {
         uv.addCSourceFiles(.{
             .files = &.{
+                "vendor/libuv/src/unix/async.c",
+                "vendor/libuv/src/unix/core.c",
+                "vendor/libuv/src/unix/dl.c",
+                "vendor/libuv/src/unix/fs.c",
+                "vendor/libuv/src/unix/getaddrinfo.c",
+                "vendor/libuv/src/unix/getnameinfo.c",
+                "vendor/libuv/src/unix/loop-watcher.c",
+                "vendor/libuv/src/unix/loop.c",
+                "vendor/libuv/src/unix/pipe.c",
+                "vendor/libuv/src/unix/poll.c",
+                "vendor/libuv/src/unix/process.c",
+                "vendor/libuv/src/unix/proctitle.c",
+                "vendor/libuv/src/unix/random-devurandom.c",
+                "vendor/libuv/src/unix/signal.c",
+                "vendor/libuv/src/unix/stream.c",
+                "vendor/libuv/src/unix/tcp.c",
+                "vendor/libuv/src/unix/thread.c",
+                "vendor/libuv/src/unix/tty.c",
+                "vendor/libuv/src/unix/udp.c",
+            },
+            .flags = &.{
+                "-D_FILE_OFFSET_BITS=64",
+                "-D_LARGEFILE_SOURCE",
+                "-D_GNU_SOURCE",
+                "-D_POSIX_C_SOURCE=200112"
+            }
+        });
+        uv.addCSourceFiles(.{
+            .files = &.{
                 "vendor/libuv/src/unix/linux.c",
                 "vendor/libuv/src/unix/procfs-exepath.c",
                 "vendor/libuv/src/unix/random-getrandom.c",
                 "vendor/libuv/src/unix/random-sysctl-linux.c",
+            },
+            .flags = &.{
+                "-D_GNU_SOURCE",
+                "-D_POSIX_C_SOURCE=200112"
             }
         });
         
