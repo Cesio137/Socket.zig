@@ -152,6 +152,12 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     });
     
     if (target.result.os.tag == .windows) {
+        try uv_flags.appendSlice(&.{
+            "-DWIN32_LEAN_AND_MEAN",
+            "-D_WIN32_WINNT=0x0A00",
+            "-D_CRT_DECLARE_NONSTDC_NAMES=0"
+        });
+        if (target.result.abi == .msvc) { try uv_flags.append("-D/we4013"); }
         uv.addCSourceFiles(.{
             .files = &.{
                 "vendor/libuv/src/win/async.c",
@@ -179,7 +185,8 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
                 "vendor/libuv/src/win/util.c",
                 "vendor/libuv/src/win/winapi.c",
                 "vendor/libuv/src/win/winsock.c",
-            }
+            },
+            .flags = uv_flags.items
         });
 
         uv.linkSystemLibrary("psapi");
@@ -223,11 +230,7 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
                 "vendor/libuv/src/unix/thread.c",
                 "vendor/libuv/src/unix/tty.c",
                 "vendor/libuv/src/unix/udp.c",
-            },
-            .flags = uv_flags.items
-        });
-        uv.addCSourceFiles(.{
-            .files = &.{
+
                 "vendor/libuv/src/unix/linux.c",
                 "vendor/libuv/src/unix/procfs-exepath.c",
                 "vendor/libuv/src/unix/random-getrandom.c",
@@ -239,6 +242,26 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
         uv.linkSystemLibrary("pthread");
         uv.linkSystemLibrary("dl");
         uv.linkSystemLibrary("rt");
+    }
+
+    if (target.result.os.tag.isDarwin()) {
+        try uv_flags.appendSlice(&.{
+            "-D_DARWIN_UNLIMITED_SELECT=1",
+            "-D_DARWIN_USE_64_BIT_INODE=1",
+        });
+
+        uv.addCSourceFiles(.{
+            .files = &.{
+                "vendor/libuv/src/unix/proctitle.c",
+                "vendor/libuv/src/unix/bsd-ifaddrs.c",
+                "vendor/libuv/src/unix/kqueue.c",
+                "vendor/libuv/src/unix/random-getentropy.c",
+                "vendor/libuv/src/unix/darwin-proctitle.c",
+                "vendor/libuv/src/unix/darwin.c",
+                "vendor/libuv/src/unix/fsevents.c"
+            },
+            .flags = uv_flags.items
+        });
     }
 
     return uv;
