@@ -3,7 +3,7 @@ const std = @import("std");
 // Although this function looks imperative, note that its job is to
 // declaratively construct a build graph that will be executed by an external
 // runner.
-pub fn build(b: *std.Build) void {
+pub fn build(b: *std.Build) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -45,7 +45,7 @@ pub fn build(b: *std.Build) void {
     exe_mod.addImport("Socket_zig_lib", lib_mod);
 
     // Setup libuv
-    const libuv = setupLibuv(b, target, optimize);
+    const libuv = try setupLibuv(b, target, optimize);
 
     // Now, we will create a static library based on the module we created above.
     // This creates a `std.Build.Step.Compile`, which is the build step responsible
@@ -122,7 +122,7 @@ pub fn build(b: *std.Build) void {
     test_step.dependOn(&run_exe_unit_tests.step);
 }
 
-pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) *std.Build.Step.Compile {
+pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !*std.Build.Step.Compile {
     var uv = b.addStaticLibrary(.{ 
         .name = "uv", 
         .target = target, 
@@ -132,8 +132,8 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     uv.addIncludePath(b.path("vendor/libuv/src"));
     uv.linkLibC();
 
-    //var flags = std.ArrayList([]const u8).init(b.allocator);
-    //defer flags.deinit();
+    var uv_flags = std.ArrayList([]const u8).init(b.allocator);
+    defer uv_flags.deinit();    
 
     uv.addCSourceFiles(.{
         .files = &.{
@@ -195,6 +195,13 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     }
 
     if (target.result.os.tag == .linux) {
+        try uv_flags.appendSlice(&.{
+            "-D_FILE_OFFSET_BITS=64",
+            "-D_LARGEFILE_SOURCE",
+            "-D_GNU_SOURCE",
+            "-D_POSIX_C_SOURCE=200112"
+        });
+        
         uv.addCSourceFiles(.{
             .files = &.{
                 "vendor/libuv/src/unix/async.c",
@@ -217,12 +224,7 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
                 "vendor/libuv/src/unix/tty.c",
                 "vendor/libuv/src/unix/udp.c",
             },
-            .flags = &.{
-                "-D_FILE_OFFSET_BITS=64",
-                "-D_LARGEFILE_SOURCE",
-                "-D_GNU_SOURCE",
-                "-D_POSIX_C_SOURCE=200112"
-            }
+            .flags = uv_flags.items
         });
         uv.addCSourceFiles(.{
             .files = &.{
@@ -231,10 +233,7 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
                 "vendor/libuv/src/unix/random-getrandom.c",
                 "vendor/libuv/src/unix/random-sysctl-linux.c",
             },
-            .flags = &.{
-                "-D_GNU_SOURCE",
-                "-D_POSIX_C_SOURCE=200112"
-            }
+            .flags = uv_flags.items
         });
         
         uv.linkSystemLibrary("pthread");

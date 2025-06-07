@@ -4,6 +4,25 @@
 
 const uv = @cImport( @cInclude("uv.h") );
 
+fn alloc_buffer(handle: ?*uv.uv_handle_t, suggested_size: usize, buf: *uv.uv_buf_t) callconv(.C) void {
+    _ = handle;
+    buf.* = uv.uv_buf_init(std.heap.c_allocator.alloc(u8, suggested_size) catch null, suggested_size);
+}
+
+fn on_send(req: [*c]uv.uv_udp_send_t, status: c_int) callconv(.C) void {
+    _ = req;
+    if (status == 0) {
+        std.debug.print("Mensagem enviada com sucesso!\n", .{});
+    } else {
+        std.debug.print("Erro ao enviar: {d}\n", .{status});
+    }
+}
+
+fn convert(slice: []const u8) [*c]u8 {
+    return slice.ptr;
+}
+
+
 pub fn main() !void {
     // Prints to stderr (it's a shortcut based on `std.io.getStdErr()`)
     std.debug.print("All your {s} are belong to us.\n", .{"codebase"});
@@ -20,11 +39,35 @@ pub fn main() !void {
     try bw.flush(); // Don't forget to flush!
 
     const loop = uv.uv_default_loop();
-    defer std.c.free(loop);
-    _ = uv.uv_loop_init(loop);
-    std.debug.print("Now quitting.\n", .{});
+
+    var udp_handle: uv.uv_udp_t = undefined;
+    if (uv.uv_udp_init(loop, &udp_handle) != 0) {
+        std.debug.print("Erro ao inicializar UDP\n", .{});
+        return;
+    }
+
+    // Mensagem a ser enviada
+    const msg = "login";
+    var buf = uv.uv_buf_init(@constCast(msg), msg.len);
+
+    // Endereço de destino (broadcast na porta 12345)
+    var addr: uv.sockaddr_in = undefined;
+    _ = uv.uv_ip4_addr("127.0.0.1", 3000, &addr);
+
+    // Habilita broadcast
+    _ = uv.uv_udp_set_broadcast(&udp_handle, 1);
+
+    var send_req: uv.uv_udp_send_t = undefined;
+    _ = uv.uv_udp_send(
+        &send_req,
+        &udp_handle,
+        &buf,
+        1,
+        @ptrCast(&addr),
+        on_send,
+    );
+
     _ = uv.uv_run(loop, uv.UV_RUN_DEFAULT);
-    _ = uv.uv_loop_close(loop);
 }
 
 test "simple test" {
