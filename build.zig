@@ -152,11 +152,6 @@ pub fn setupLibuv(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std
     });
     
     if (target.result.os.tag == .windows) {
-        try uv_flags.appendSlice(&.{
-            "-DWIN32_LEAN_AND_MEAN",
-            "-D_WIN32_WINNT=0x0A00",
-            "-D_CRT_DECLARE_NONSTDC_NAMES=0"
-        });
         if (target.result.abi == .msvc) { try uv_flags.append("-D/we4013"); }
         uv.addCSourceFiles(.{
             .files = &.{
