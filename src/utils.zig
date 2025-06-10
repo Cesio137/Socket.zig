@@ -1,7 +1,7 @@
 const stdlib = @cImport( @cInclude("stdlib.h") );
-const c = @cImport( @cInclude("uv.h") );
+const uv = @cImport( @cInclude("uv.h") );
 
-pub fn alloc_buffer(_: [*c]c.uv_handle_t, suggested_size: usize, buf: [*c]c.uv_buf_t) callconv(.C) void {
+pub fn alloc_buffer(_: [*c]uv.uv_handle_t, suggested_size: usize, buf: [*c]uv.uv_buf_t) callconv(.C) void {
     const malloc = stdlib.malloc(@intCast(suggested_size));
     if (malloc == null) {
         buf.*.base = null;
@@ -34,5 +34,14 @@ pub fn strToCBuffer(str: []const u8) [*c]u8 {
 pub fn bufToCBuffer(buf: []u8) [*c]u8 {
     const c_buf: [*c]u8 = @ptrCast(buf);
     return c_buf;
+}
+
+pub fn uvbufToBuffer(uvbuf: [*c]const uv.uv_buf_t, len: isize) []u8 {
+    const buf: []u8 = uvbuf[0].base[0..@intCast(len)];
+    return buf;
+}
+
+pub fn freeUVBuffer(uvbuf: [*c]const uv.uv_buf_t) void {
+    stdlib.free(uvbuf.*.base);
 }
 

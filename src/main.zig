@@ -6,6 +6,7 @@ const std = @import("std");
 const lib = @import("Socket_zig_lib");
 const uv = @cImport( @cInclude("uv.h") );
 const udp = @import("udp.zig");
+const utils = @import("utils.zig");
 
 fn on_send(req: [*c]uv.uv_udp_send_t, status: c_int) callconv(.C) void {
     _ = req;
@@ -27,8 +28,9 @@ fn on_recv(req: [*c]uv.uv_udp_t, nread: isize, buf: [*c]const uv.uv_buf_t, addr:
         return;
     }
     
-    const msg = buf[0].base[0..@intCast(nread)];
+    const msg = utils.uvbufToBuffer(buf, nread);
     std.debug.print("Mensagem recebida: {s}\n", .{msg});
+    utils.freeUVBuffer(buf);
 }
 
 pub fn main() !void {
