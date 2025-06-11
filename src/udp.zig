@@ -2,6 +2,8 @@ const std = @import("std");
 const uv = @cImport(@cInclude("uv.h"));
 const utils = @import("utils.zig");
 
+// Server
+
 // Client
 pub const Client = struct { 
     // Public
@@ -13,7 +15,7 @@ pub const Client = struct {
     p_recv_socket: uv.uv_udp_t,
     p_recv_addr: uv.sockaddr_in,
 
-    pub fn connect(self: *Client, uv_loop: [*c]uv.uv_loop_t) i32 {   
+    pub fn connect(self: *Client, uv_loop: [*c]uv.uv_loop_t) i32 {
         // Init client recv socket
         var code = uv.uv_udp_init(uv_loop, &self.*.p_recv_socket);
         if (code != 0) { return code; }
